@@ -122,7 +122,7 @@ private struct ImageSetIdioms {
             if universalVector {
                 images.append("vector")
             }
-            devices.append("universal: " + ",".join(images))
+            devices.append("universal: " + images.joinWithSeparator(","))
         }
         
         // iPhone.
@@ -152,7 +152,7 @@ private struct ImageSetIdioms {
             if iPhoneVector_4Inch {
                 images.append("vector-568h")
             }
-            devices.append("iPhone: " + ",".join(images))
+            devices.append("iPhone: " + images.joinWithSeparator(","))
         }
         
         // iPad
@@ -170,7 +170,7 @@ private struct ImageSetIdioms {
             if iPadVector {
                 images.append("vector")
             }
-            devices.append("iPad: " + ",".join(images))
+            devices.append("iPad: " + images.joinWithSeparator(","))
         }
         
         // Apple Watch
@@ -185,10 +185,10 @@ private struct ImageSetIdioms {
             if AppleWatch42 {
                 images.append("-42")
             }
-            devices.append("AppleWatch: " + ",".join(images))
+            devices.append("AppleWatch: " + images.joinWithSeparator(","))
         }
         
-        return "; ".join(devices)
+        return devices.joinWithSeparator("; ")
     }
 }
 
@@ -251,13 +251,13 @@ class ImageSet {
     }
 }
 
-extension ImageSet: Printable {
+extension ImageSet: CustomStringConvertible {
     var description: String {
         return self.verboseDescription(1)
     }
 }
 
-extension ImageSet: DebugPrintable {
+extension ImageSet: CustomDebugStringConvertible {
     var debugDescription: String {
         return self.description
     }

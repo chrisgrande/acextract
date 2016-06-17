@@ -40,17 +40,19 @@ class AssetsCatalog {
     
     // MARK: - Initialization
     init?(filePath: String) {
-        let fp = filePath.stringByExpandingTildeInPath
+        let fp = (filePath as NSString).stringByExpandingTildeInPath
         if NSFileManager.defaultManager().fileExistsAtPath(fp) {
-            if let url = NSURL(fileURLWithPath: fp) {
+            let url = NSURL(fileURLWithPath: fp)
                 self.filePath = fp
                 self.fileURL = url
                 
                 let error = NSErrorPointer()
-                self.catalog = CUICatalog(URL: self.fileURL, error: error)
-            } else {
-                return nil
-            }
+                do {
+                    self.catalog = try CUICatalog(URL: self.fileURL)
+                } catch var error1 as NSError {
+                    error.memory = error1
+                    self.catalog = nil
+                }
         } else {
             return nil
         }
@@ -79,7 +81,7 @@ class AssetsCatalog {
     
     func extractContentToDirectoryAtPath(path: String, error: NSErrorPointer) {
         
-        let expandedPath = path.stringByExpandingTildeInPath
+        let expandedPath = (path as NSString).stringByExpandingTildeInPath
         
         // Check if directory exits.
         var isDirectory: ObjCBool = false
@@ -104,17 +106,24 @@ class AssetsCatalog {
             let namedImages = self.imagesWithName(name)
             
             for namedImage in namedImages {
-                let filePath = expandedPath.stringByAppendingPathComponent(namedImage.ac_imageName)
+                let filePath = (expandedPath as NSString).stringByAppendingPathComponent(namedImage.ac_imageName)
                 var error: NSError?
-                print("Extracting: \(namedImage.ac_imageName)")
-                let success = namedImage.ac_saveAtPath(filePath, error: &error)
+                print("Extracting: \(namedImage.ac_imageName)", terminator: "")
+                let success: Bool
+                do {
+                    try namedImage.ac_saveAtPath(filePath)
+                    success = true
+                } catch let error1 as NSError {
+                    error = error1
+                    success = false
+                }
                 if success {
-                    println(" OK")
+                    print(" OK")
                 } else {
                     if let e = error {
-                        println(" FAILED \(e.localizedDescription)")
+                        print(" FAILED \(e.localizedDescription)")
                     } else {
-                        println(" FAILED")
+                        print(" FAILED")
                     }
                 }
             }

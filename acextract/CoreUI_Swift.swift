@@ -61,13 +61,13 @@ enum NamedImageBasicType {
     case NotRecognized
 }
 
-extension CUIImageInsets: Printable {
+extension CUIImageInsets: CustomStringConvertible {
     public var description: String {
         return "(\(top),\(left),\(bottom),\(right))"
     }
 }
 
-extension CUIDeviceIdiom: Printable {
+extension CUIDeviceIdiom: CustomStringConvertible {
     public var description: String {
         switch self {
         case .IdiomUniversal:
@@ -82,7 +82,7 @@ extension CUIDeviceIdiom: Printable {
     }
 }
 
-extension CUISubtype: Printable {
+extension CUISubtype: CustomStringConvertible {
     public var description: String {
         switch self {
         case .SubtypeNormal:
@@ -97,7 +97,7 @@ extension CUISubtype: Printable {
     }
 }
 
-extension CUIUserInterfaceSizeClass: Printable {
+extension CUIUserInterfaceSizeClass: CustomStringConvertible {
     public var description: String {
         switch self {
         case .Any:
@@ -110,7 +110,7 @@ extension CUIUserInterfaceSizeClass: Printable {
     }
 }
 
-extension CUIRenderMode: Printable {
+extension CUIRenderMode: CustomStringConvertible {
     public var description: String {
         switch self {
         case .Original:
@@ -123,7 +123,7 @@ extension CUIRenderMode: Printable {
     }
 }
 
-extension CUIResizingMode: Printable {
+extension CUIResizingMode: CustomStringConvertible {
     public var description: String {
         switch self {
         case .Tiles:
@@ -134,7 +134,7 @@ extension CUIResizingMode: Printable {
     }
 }
 
-extension CUIImageType: Printable {
+extension CUIImageType: CustomStringConvertible {
     public var description: String {
         switch self {
         case .None:
@@ -335,40 +335,39 @@ extension CUINamedImage {
         return data
     }
     
-    func ac_saveAtPath(filePath: String, error: NSErrorPointer) -> Bool {
+    func ac_saveAtPath(filePath: String) throws {
         if self._rendition().pdfDocument() != nil {
-            return self.ac_savePDFToDirectory(filePath, error: error)
+            try self.ac_savePDFToDirectory(filePath)
+            return
         } else if self._rendition().unslicedImage() != nil {
-            return self.ac_saveImageToDirectory(filePath, error: error)
+            try self.ac_saveImageToDirectory(filePath)
+            return
         } else {
-            if error != nil {
-                error.memory = NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.RenditionMissingData.rawValue, userInfo: nil)
-            }
-            return false
+            throw NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.RenditionMissingData.rawValue, userInfo: nil)
         }
     }
     
-    func ac_saveImageToDirectory(filePath: String, error: NSErrorPointer) -> Bool {
-        let filePathURL = NSURL(fileURLWithPath: filePath)!
+    func ac_saveImageToDirectory(filePath: String) throws {
+        let error: NSError! = NSError(domain: "Migrator", code: 0, userInfo: nil)
+        let filePathURL = NSURL(fileURLWithPath: filePath)
         let cgImage = self._rendition().unslicedImage().takeUnretainedValue()
         let cgDestination = CGImageDestinationCreateWithURL(filePathURL, kUTTypePNG, 1, nil)
-        CGImageDestinationAddImage(cgDestination, cgImage, nil)
+        CGImageDestinationAddImage(cgDestination!, cgImage, nil)
         
-        if !CGImageDestinationFinalize(cgDestination) {
-            return false
+        if !CGImageDestinationFinalize(cgDestination!) {
+            throw error
         }
-        
-        return true
     }
     
-    func ac_savePDFToDirectory(filePath: String, error: NSErrorPointer) -> Bool {
+    func ac_savePDFToDirectory(filePath: String) throws {
+        let error: NSError! = NSError(domain: "Migrator", code: 0, userInfo: nil)
         // Based on:
         // http://stackoverflow.com/questions/3780745/saving-a-pdf-document-to-disk-using-quartz
         
         let cgPDFDocument = self._rendition().pdfDocument().takeUnretainedValue()
         //Create the pdf context
         let cgPage = CGPDFDocumentGetPage(cgPDFDocument, 1);
-        var cgPageRect = CGPDFPageGetBoxRect(cgPage, kCGPDFMediaBox);
+        var cgPageRect = CGPDFPageGetBoxRect(cgPage, CGPDFBox.MediaBox);
         let mutableData = NSMutableData()
         
         let cgDataConsumer = CGDataConsumerCreateWithCFData(mutableData);
@@ -382,15 +381,15 @@ extension CUINamedImage {
         }
         else
         {
-            if error != nil {
-                error.memory = NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.CannotCreatePDFDocument.rawValue, userInfo: nil)
-            }
-            return false
+            throw NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.CannotCreatePDFDocument.rawValue, userInfo: nil)
         }
         
         CGPDFContextClose(cgPDFContext)
         
         let success = mutableData.writeToFile(filePath, atomically: true)
-        return success
+        if success {
+            return
+        }
+        throw error
     }
 }

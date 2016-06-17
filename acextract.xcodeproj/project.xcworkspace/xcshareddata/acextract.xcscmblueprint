@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "E9F3D69E5DB522F77CC40FC0CE23A74DFB2161F8",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "E9F3D69E5DB522F77CC40FC0CE23A74DFB2161F8" : 0,
+    "CBF5F70D4EDC8047BC75C25236002B0EA7F6B15B" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "DBE680B5-D242-4B14-8659-EC39C9768427",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "E9F3D69E5DB522F77CC40FC0CE23A74DFB2161F8" : "acextract\/",
+    "CBF5F70D4EDC8047BC75C25236002B0EA7F6B15B" : "acextract\/CommandLine\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "acextract",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "acextract.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/jatoben\/CommandLine",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "CBF5F70D4EDC8047BC75C25236002B0EA7F6B15B"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/bartoszj\/acextract.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "E9F3D69E5DB522F77CC40FC0CE23A74DFB2161F8"
+    }
+  ]
+}
