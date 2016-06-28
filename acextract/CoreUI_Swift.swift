@@ -25,372 +25,283 @@
 
 import Foundation
 
-let CoreUIErrorDomain = "CoreUIErrorDomain"
-
-enum CoreUIErrorCodes: Int {
-    case RenditionMissingData
-    case RenditionMissingImage
-    case RenditionMissingPDF
-    case CannotCreatePDFDocument
+// MARK: - Protocols
+protocol NameStringConvertible {
+    var name: String { get }
 }
 
-enum NamedImageBasicType {
-    case Universal1x
-    case Universal2x
-    case Universal3x
-    case UniversalVector
-    
-    case iPhone1x
-    case iPhone1x_4Inch
-    case iPhone2x
-    case iPhone2x_4Inch
-    case iPhone3x
-    case iPhone3x_4Inch
-    case iPhoneVector
-    case iPhoneVector_4Inch
-    
-    case iPad1x
-    case iPad2x
-    case iPad3x
-    case iPadVector
-    
-    case AppleWatch
-    case AppleWatch38
-    case AppleWatch42
-    
-    case NotRecognized
+protocol ValueCorrectness {
+    var correct: Bool { get }
 }
 
-extension CUIImageInsets: Printable {
-    public var description: String {
-        return "(\(top),\(left),\(bottom),\(right))"
+protocol IncorrectValueAssertion {
+    func assertIncorrectValue() -> Bool
+}
+
+extension IncorrectValueAssertion where Self: protocol<RawRepresentable, ValueCorrectness> {
+    func assertIncorrectValue() -> Bool {
+        let c = correct
+        assert(c, "Incorrect value: \(self) - \(rawValue)")
+        return c
     }
 }
 
-extension CUIDeviceIdiom: Printable {
-    public var description: String {
-        switch self {
-        case .IdiomUniversal:
-            return "universal"
-        case .IdiomiPhone:
-            return "iPhone"
-        case .IdiomiPad:
-            return "iPad"
-        case .IdiomAppleWatch:
-            return "AppleWatch"
+protocol AllValues {
+    static var allValues: [Self] { get }
+}
+
+// MARK: - Custom types
+enum ScaleFactor {
+    case scale1x
+    case scale2x
+    case scale3x
+}
+
+extension ScaleFactor: FloatLiteralConvertible {
+    init(floatLiteral value: Double) {
+        switch value {
+        case 1.0: self = .scale1x
+        case 2.0: self = .scale2x
+        case 3.0: self = .scale3x
+        default: fatalError()
         }
     }
 }
 
-extension CUISubtype: Printable {
-    public var description: String {
+extension ScaleFactor: NameStringConvertible {
+    var name: String {
         switch self {
-        case .SubtypeNormal:
-            return "normal"
-        case .SubtypeiPhone4Inch:
-            return "-568h"
-        case .SubtypeAppleWarch38:
-            return "-38"
-        case .SubtypeAppleWarch42:
-            return "-42"
+        case .scale1x: return ""
+        case .scale2x: return "@2x"
+        case .scale3x: return "@3x"
         }
     }
 }
 
-extension CUIUserInterfaceSizeClass: Printable {
-    public var description: String {
+// MARK: - CoreUI Extensions
+extension NSEdgeInsets: Equatable { }
+public func == (lhs: NSEdgeInsets, rhs: NSEdgeInsets) -> Bool {
+    return lhs.top == rhs.top
+        && lhs.left == rhs.left
+        && lhs.bottom == rhs.bottom
+        && lhs.right == rhs.right
+}
+
+// MARK: CUIDeviceIdiom
+extension CUIDeviceIdiom: NameStringConvertible {
+    var name: String {
+        // Idiom.
         switch self {
-        case .Any:
-            return "any"
-        case .Compact:
-            return "compact"
-        case .Regular:
-            return "regular"
+        case .Universal: return ""
+        case .IPhone: return "~iphone"
+        case .IPad: return "~ipad"
+        case .AppleTV: return "~tv"
+        case .AppleWatch: return "~watch"
         }
     }
 }
 
-extension CUIRenderMode: Printable {
-    public var description: String {
+extension CUIDeviceIdiom: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
         switch self {
-        case .Original:
-            return "original"
-        case .Template:
-            return "template"
-        case .Default:
-            return "default"
+        case .Universal: return rawValue == Universal.rawValue
+        case .IPhone: return rawValue == IPhone.rawValue
+        case .IPad: return rawValue == IPad.rawValue
+        case .AppleTV: return rawValue == AppleTV.rawValue
+        case .AppleWatch: return rawValue == AppleWatch.rawValue
         }
     }
 }
 
-extension CUIResizingMode: Printable {
+extension CUIDeviceIdiom: AllValues {
+    static var allValues: [CUIDeviceIdiom] {
+        return [.Universal, .IPhone, .IPad, .AppleTV, .AppleWatch]
+    }
+}
+
+extension CUIDeviceIdiom: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .Tiles:
-            return "tiles"
-        case .Stretches:
-            return "stretches"
+        case .Universal: return "universal"
+        case .IPhone: return "iPhone"
+        case .IPad: return "iPad"
+        case .AppleTV: return "AppleTV"
+        case .AppleWatch: return "AppleWatch"
         }
     }
 }
 
-extension CUIImageType: Printable {
-    public var description: String {
+// MARK: CUISubtype
+extension CUISubtype: NameStringConvertible {
+    var name: String {
         switch self {
-        case .None:
-            return "none"
-        case .Horizontal:
-            return "horizontal"
-        case .Vertical:
-            return "vertical"
-        case .HorizontalAndVertical:
-            return "horizontal & vertical"
+        case .Normal: return ""
+        case .IPhone4Inch: return "-568h"
+        case .AppleWatch38: return "-38"
+        case .AppleWatch42: return "-42"
         }
     }
 }
 
+extension CUISubtype: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
+        switch self {
+        case .Normal: return rawValue == Normal.rawValue
+        case .IPhone4Inch: return rawValue == IPhone4Inch.rawValue
+        case .AppleWatch38: return rawValue == AppleWatch38.rawValue
+        case .AppleWatch42: return rawValue == AppleWatch42.rawValue
+        }
+    }
+}
+
+extension CUISubtype: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .Normal: return "normal"
+        case .IPhone4Inch: return "-568h"
+        case .AppleWatch38: return "-38"
+        case .AppleWatch42: return "-42"
+        }
+    }
+}
+
+// MARK: CUIUserInterfaceSizeClass
+extension CUIUserInterfaceSizeClass: NameStringConvertible {
+    var name: String {
+        switch self {
+        case .Any: return "*"
+        case .Compact: return "-"
+        case .Regular: return "+"
+        }
+    }
+}
+
+extension CUIUserInterfaceSizeClass: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
+        switch self {
+        case .Any: return rawValue == Any.rawValue
+        case .Compact: return rawValue == Compact.rawValue
+        case .Regular: return rawValue == Regular.rawValue
+        }
+    }
+}
+
+extension CUIUserInterfaceSizeClass: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .Any: return "any"
+        case .Compact: return "compact"
+        case .Regular: return "regular"
+        }
+    }
+}
+
+// MARK: CUIRenderMode
+extension CUIRenderMode: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
+        switch self {
+        case .Original: return rawValue == Original.rawValue
+        case .Template: return rawValue == Template.rawValue
+        case .Default: return rawValue == Default.rawValue
+        }
+    }
+}
+
+extension CUIRenderMode: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .Original: return "original"
+        case .Template: return "template"
+        case .Default: return "default"
+        }
+    }
+}
+
+// MARK: CUIResizingMode
+extension CUIResizingMode: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
+        switch self {
+        case .Tiles: return rawValue == Tiles.rawValue
+        case .Stretches: return rawValue == Stretches.rawValue
+        }
+    }
+}
+
+extension CUIResizingMode: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .Tiles: return "tiles"
+        case .Stretches: return "stretches"
+        }
+    }
+}
+
+// MARK: CUIImageType
+extension CUIImageType: ValueCorrectness, IncorrectValueAssertion {
+    var correct: Bool {
+        switch self {
+        case .None: return rawValue == None.rawValue
+        case .Horizontal: return rawValue == Horizontal.rawValue
+        case .Vertical: return rawValue == Vertical.rawValue
+        case .HorizontalAndVertical: return rawValue == HorizontalAndVertical.rawValue
+        }
+    }
+}
+
+extension CUIImageType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .None: return "none"
+        case .Horizontal: return "horizontal"
+        case .Vertical: return "vertical"
+        case .HorizontalAndVertical: return "horizontal & vertical"
+        }
+    }
+}
+
+// MARK: CUINamedImage
 extension CUINamedImage {
-    var ac_basicType: NamedImageBasicType {
-        switch self.idiom() {
-        // Universal / Mac
-        case .IdiomUniversal:
-            assert(self.subtype() == .SubtypeNormal, "Not recognized subtype.")
-            if self.isVectorBased && self.size == CGSizeZero {
-                return .UniversalVector
-            } else {
-                switch self.scale {
-                case 1.0:
-                    return .Universal1x
-                case 2.0:
-                    return .Universal2x
-                case 3.0:
-                    return .Universal3x
-                default:
-                    assert(false, "Not recognized scale.")
-                }
-            }
-        // iPhone
-        case .IdiomiPhone:
-            if self.isVectorBased && self.size == CGSizeZero {
-                if self.subtype() == .SubtypeiPhone4Inch {
-                    return .iPhoneVector_4Inch
-                } else {
-                    return .iPhoneVector
-                }
-            } else {
-                switch self.scale {
-                case 1.0:
-                    if self.subtype() == .SubtypeiPhone4Inch {
-                        return .iPhone1x_4Inch
-                    } else {
-                        return .iPhone1x
-                    }
-                case 2.0:
-                    if self.subtype() == .SubtypeiPhone4Inch {
-                        return .iPhone2x_4Inch
-                    } else {
-                        return .iPhone2x
-                    }
-                case 3.0:
-                    if self.subtype() == .SubtypeiPhone4Inch {
-                        return .iPhone3x_4Inch
-                    } else {
-                        return .iPhone3x
-                    }
-                default:
-                    assert(false, "Not recognized scale.")
-                }
-            }
-        // iPad
-        case .IdiomiPad:
-            if self.isVectorBased && self.size == CGSizeZero {
-                assert(self.subtype() == .SubtypeNormal, "Not recognized subtype.")
-                return .iPadVector
-            } else {
-                assert(self.subtype() == .SubtypeNormal, "Not recognized subtype.")
-                switch self.scale {
-                case 1.0:
-                    return .iPad1x
-                case 2.0:
-                    return .iPad2x
-                case 3.0:
-                    return .iPad3x
-                default:
-                    assert(false, "Not recognized scale.")
-                }
-            }
-        // Aplpe Watch.
-        case .IdiomAppleWatch:
-            switch self.subtype() {
-            case .SubtypeNormal:
-                return .AppleWatch
-            case .SubtypeAppleWarch38:
-                return .AppleWatch38
-            case .SubtypeAppleWarch42:
-                return .AppleWatch42
-            default:
-                assert(false, "Not recognized subtype.")
-            }
-        default:
-            assert(false, "Not recognized idiom.")
-        }
-        
-        return .NotRecognized
+    var acScale: ScaleFactor {
+        return ScaleFactor(floatLiteral: scale)
     }
-    
-    var ac_sizeClassString: String? {
+
+    var acSizeClassString: String {
         switch (self.sizeClassHorizontal(), self.sizeClassVertical()) {
-        case (.Any, .Any):
-            return nil
-        case (.Any, .Compact):
-            return "*-"
-        case (.Any, .Regular):
-            return "*+"
-        case (.Compact, .Any):
-            return "-*"
-        case (.Compact, .Compact):
-            return "--"
-        case (.Compact, .Regular):
-            return "-+"
-        case (.Regular, .Any):
-            return "+*"
-        case (.Regular, .Compact):
-            return "+-"
-        case (.Regular, .Regular):
-            return "++"
+        case (.Any, .Any): return ""
+        case let (horizontal, vertical): return "\(horizontal.name)\(vertical.name)"
         }
     }
-    
-    var ac_isPDF: Bool {
-        if self.isVectorBased && self.size == CGSizeZero {
+
+    private var acFileExtension: String {
+        if acIsPDF {
+            return "pdf"
+        }
+        return "png"
+    }
+
+    var acIsPDF: Bool {
+        if self.isVectorBased && self.size == CGSize.zero {
             return true
         }
         return false
     }
-    
-    var ac_imageName: String {
-        // Size class suffix.
-        var sizeClassSuffix = ""
-        if let sc = self.ac_sizeClassString {
-            sizeClassSuffix = "_\(sc)"
-        }
-        
-        // Scale.
-        var scale = ""
-        switch self.scale {
-        case 1.0:
-            scale = ""
-        case 2.0:
-            scale = "@2x"
-        case 3.0:
-            scale = "@3x"
-        default:
-            assert(false, "Not recognized idiom.")
-        }
-        
-        // Vector.
-        var fileExtension = "png"
-        if self.ac_isPDF {
-            fileExtension = "pdf"
-        }
-        
-        // Subtype (4 inch).
-        var subtype = ""
-        switch self.subtype() {
-        case .SubtypeNormal:
-            subtype = ""
-        case .SubtypeiPhone4Inch:
-            subtype = "-568h"
-        case .SubtypeAppleWarch38:
-            subtype = "-38"
-        case .SubtypeAppleWarch42:
-            subtype = "-42"
-        }
-        
-        // Idiom.
-        var idiom = ""
-        switch self.idiom() {
-        case .IdiomUniversal:
-            idiom = ""
-        case .IdiomiPhone:
-            idiom = "~iphone"
-        case .IdiomiPad:
-            idiom = "~ipad"
-        case .IdiomAppleWatch:
-            idiom = "~watch"
-        }
-        
+
+    var acImageName: String {
+        // Size class suffix
+        let sizeClassSuffix = acSizeClassString
+
+        // Scale
+        let scale = self.acScale.name
+
+        // File extension
+        let fileExtension = acFileExtension
+
+        // Subtype (4 inch)
+        let subtype = self.subtype().name
+
+        // Idiom
+        let idiom = self.idiom().name
+
         return "\(self.name)\(sizeClassSuffix)\(subtype)\(scale)\(idiom).\(fileExtension)"
-    }
-    
-    var ac_renditionName: String {
-        let rendition = self._rendition()
-        let realName = rendition.name()
-        return realName
-    }
-    
-    var ac_renditionSrcData: NSData {
-        let rendition = self._rendition()
-        let data = GetRenditionSrcData(rendition)
-        return data
-    }
-    
-    func ac_saveAtPath(filePath: String, error: NSErrorPointer) -> Bool {
-        if self._rendition().pdfDocument() != nil {
-            return self.ac_savePDFToDirectory(filePath, error: error)
-        } else if self._rendition().unslicedImage() != nil {
-            return self.ac_saveImageToDirectory(filePath, error: error)
-        } else {
-            if error != nil {
-                error.memory = NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.RenditionMissingData.rawValue, userInfo: nil)
-            }
-            return false
-        }
-    }
-    
-    func ac_saveImageToDirectory(filePath: String, error: NSErrorPointer) -> Bool {
-        let filePathURL = NSURL(fileURLWithPath: filePath)!
-        let cgImage = self._rendition().unslicedImage().takeUnretainedValue()
-        let cgDestination = CGImageDestinationCreateWithURL(filePathURL, kUTTypePNG, 1, nil)
-        CGImageDestinationAddImage(cgDestination, cgImage, nil)
-        
-        if !CGImageDestinationFinalize(cgDestination) {
-            return false
-        }
-        
-        return true
-    }
-    
-    func ac_savePDFToDirectory(filePath: String, error: NSErrorPointer) -> Bool {
-        // Based on:
-        // http://stackoverflow.com/questions/3780745/saving-a-pdf-document-to-disk-using-quartz
-        
-        let cgPDFDocument = self._rendition().pdfDocument().takeUnretainedValue()
-        //Create the pdf context
-        let cgPage = CGPDFDocumentGetPage(cgPDFDocument, 1);
-        var cgPageRect = CGPDFPageGetBoxRect(cgPage, kCGPDFMediaBox);
-        let mutableData = NSMutableData()
-        
-        let cgDataConsumer = CGDataConsumerCreateWithCFData(mutableData);
-        let cgPDFContext = CGPDFContextCreate(cgDataConsumer, &cgPageRect, nil);
-        
-        if (CGPDFDocumentGetNumberOfPages(cgPDFDocument) > 0)
-        {
-            CGPDFContextBeginPage(cgPDFContext, nil);
-            CGContextDrawPDFPage(cgPDFContext, cgPage);
-            CGPDFContextEndPage(cgPDFContext);
-        }
-        else
-        {
-            if error != nil {
-                error.memory = NSError(domain: CoreUIErrorDomain, code: CoreUIErrorCodes.CannotCreatePDFDocument.rawValue, userInfo: nil)
-            }
-            return false
-        }
-        
-        CGPDFContextClose(cgPDFContext)
-        
-        let success = mutableData.writeToFile(filePath, atomically: true)
-        return success
     }
 }

@@ -25,99 +25,63 @@
 
 import Foundation
 
-let AssetsCatalogErrorDomain = "AssetsCatalogErrorDomain"
-
-enum AssetsCatalogErrorCodes: Int {
-    case OutputDirectoryDoesntExists
-    case OutputPathIsNotDirectory
+enum AssetsCatalogError: ErrorType {
+    case FileDoesntExists
+    case CannotOpenAssetsCatalog
 }
 
-class AssetsCatalog {
-    // MARK: - Properties
-    let filePath: String!
-    let fileURL: NSURL!
-    let catalog: CUICatalog!
-    
-    // MARK: - Initialization
-    init?(filePath: String) {
-        let fp = filePath.stringByExpandingTildeInPath
-        if NSFileManager.defaultManager().fileExistsAtPath(fp) {
-            if let url = NSURL(fileURLWithPath: fp) {
-                self.filePath = fp
-                self.fileURL = url
-                
-                let error = NSErrorPointer()
-                self.catalog = CUICatalog(URL: self.fileURL, error: error)
-            } else {
-                return nil
-            }
-        } else {
-            return nil
+struct AssetsCatalog {
+    // MARK: Properties
+    let filePath: String
+    let catalog: CUICatalog
+
+    /**
+     Returns all image sets from assets catalog.
+
+     - returns: List of image sets.
+     */
+    var imageSets: [ImageSet] {
+        return self.catalog.allImageNames().map(imageSet(withName:))
+    }
+
+    // MARK: Initialization
+    init(path: String) throws {
+        let fp = (path as NSString).stringByExpandingTildeInPath
+        guard NSFileManager.defaultManager().fileExistsAtPath(fp) else {
+            throw AssetsCatalogError.FileDoesntExists
+        }
+
+        let url = NSURL(fileURLWithPath: fp)
+        self.filePath = fp
+
+        do {
+            self.catalog = try CUICatalog(URL: url)
+        } catch {
+            throw AssetsCatalogError.CannotOpenAssetsCatalog
         }
     }
-    
-    // MARK: - Methods
-    func allImageNames() -> [String] {
-        return self.catalog.allImageNames() as? [String] ?? []
+
+    // MARK: Methods
+    /**
+     Return image set with given name.
+
+     - parameter name: Name of image set.
+
+     - returns: Image set with given name.
+     */
+    func imageSet(withName name: String) -> ImageSet {
+        let images = self.catalog.imagesWithName(name)
+        return ImageSet(name: name, namedImages: images)
     }
-    
-    func imagesWithName(name: String) -> [CUINamedImage] {
-        return self.catalog.imagesWithName(name) as? [CUINamedImage] ?? []
+}
+
+extension AssetsCatalog {
+    func performOperation(operation: Operation) throws {
+        try operation.read(self)
     }
-    
-    func listContent(verbose: Int) -> String {
-        var content = ""
-        let names = self.allImageNames()
-        for name in names {
-            let namedImages = self.imagesWithName(name)
-            let imageSet = ImageSet(name: name, namedImages: namedImages)
-            content += imageSet.verboseDescription(verbose) + "\n"
-        }
-        
-        return content
-    }
-    
-    func extractContentToDirectoryAtPath(path: String, error: NSErrorPointer) {
-        
-        let expandedPath = path.stringByExpandingTildeInPath
-        
-        // Check if directory exits.
-        var isDirectory: ObjCBool = false
-        if !NSFileManager.defaultManager().fileExistsAtPath(expandedPath, isDirectory: &isDirectory) {
-            if error != nil {
-                error.memory = NSError(domain: AssetsCatalogErrorDomain, code: AssetsCatalogErrorCodes.OutputDirectoryDoesntExists.rawValue, userInfo: nil)
-            }
-            return
-        }
-        
-        // Check is it is directory.
-        if !isDirectory {
-            if error != nil {
-                error.memory = NSError(domain: AssetsCatalogErrorDomain, code: AssetsCatalogErrorCodes.OutputPathIsNotDirectory.rawValue, userInfo: nil)
-            }
-            return
-        }
-        
-        // Get image names.
-        let names = self.allImageNames()
-        for name in names {
-            let namedImages = self.imagesWithName(name)
-            
-            for namedImage in namedImages {
-                let filePath = expandedPath.stringByAppendingPathComponent(namedImage.ac_imageName)
-                var error: NSError?
-                print("Extracting: \(namedImage.ac_imageName)")
-                let success = namedImage.ac_saveAtPath(filePath, error: &error)
-                if success {
-                    println(" OK")
-                } else {
-                    if let e = error {
-                        println(" FAILED \(e.localizedDescription)")
-                    } else {
-                        println(" FAILED")
-                    }
-                }
-            }
-        }
+
+    func performOperations(operations: [Operation]) throws {
+        let compundOperation = CompoundOperation(operations: operations)
+        try performOperation(compundOperation)
     }
 }

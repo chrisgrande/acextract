@@ -23,27 +23,21 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-#import <Foundation/Foundation.h>
-
-typedef struct CUIImageInsets {
-    CGFloat bottom;
-    CGFloat left;
-    CGFloat top;
-    CGFloat right;
-} CUIImageInsets;
+@import Foundation;
 
 typedef NS_ENUM(NSInteger, CUIDeviceIdiom) {
     CUIDeviceIdiomUniversal  = 0,
-    CUIDeviceIdiomiPhone     = 1,
-    CUIDeviceIdiomiPad       = 2,
+    CUIDeviceIdiomIPhone     = 1,
+    CUIDeviceIdiomIPad       = 2,
+    CUIDeviceIdiomAppleTV    = 3,
     CUIDeviceIdiomAppleWatch = 5,
 };
 
 typedef NS_ENUM(NSUInteger, CUISubtype) {
     CUISubtypeNormal       = 0,
-    CUISubtypeAppleWarch38 = 320,
-    CUISubtypeAppleWarch42 = 384,
-    CUISubtypeiPhone4Inch  = 568,
+    CUISubtypeAppleWatch38 = 320,
+    CUISubtypeAppleWatch42 = 384,
+    CUISubtypeIPhone4Inch  = 568,
 };
 
 typedef NS_ENUM(NSInteger, CUIUserInterfaceSizeClass) {
@@ -70,44 +64,68 @@ typedef NS_ENUM(NSInteger, CUIImageType) {
     CUIImageTypeHorizontalAndVertical = 3,
 };
 
-@interface CUICatalog : NSObject
+@class CUIRenditionKey, CUIThemeRendition, CUIRenditionSliceInformation;
 
-- (instancetype)initWithURL:(NSURL *)url error:(NSError * __autoreleasing *)error;
-- (NSArray *)allImageNames;
-- (NSArray *)imagesWithName:(NSString *)name;
+@interface CUINamedLookup : NSObject
+
+@property(copy, nonatomic, nonnull) NSString *name;
+@property(readonly, nonatomic) BOOL representsOnDemandContent;
+- (nonnull CUIRenditionKey *)renditionKey;
+- (nonnull NSString *)renditionName;
+- (nonnull CUIThemeRendition *)_rendition;
 
 @end
 
-@class CUIRenditionKey, CUIThemeRendition;
+@interface CUINamedImage : CUINamedLookup
+// Device idiom:
+// - idiom()
+// - subtype()
+// - scale
+//
+// Size class:
+// - sizeClassVertical()
+// - sizeClassHorizontal()
+//
+// Alignment:
+// - hasAlignmentInformation
+// - alignmentEdgeInsets
+//
+// Slices:
+// - hasSliceInformation
+// - resizingMode
+// - imageType
+// - _rendition().type()
+// - _rendition().sliceInformation()?.renditionType
+// - _rendition().sliceInformation()?.edgeInsets
+//
+// Template:
+// - isTemplate
+// - templateRenderingMode
 
-@interface CUINamedImage : NSObject
-
-@property(copy, nonatomic) NSString *name;
 @property(readonly, nonatomic) int exifOrientation;
 @property(readonly, nonatomic) CUIRenderMode templateRenderingMode;
 @property(readonly, nonatomic) BOOL isTemplate;
 @property(readonly, nonatomic) BOOL isVectorBased;
+@property(readonly, nonatomic) BOOL hasAlignmentInformation;
 @property(readonly, nonatomic) BOOL hasSliceInformation;
 @property(readonly, nonatomic) CUIResizingMode resizingMode;
 @property(readonly, nonatomic) int blendMode;
 @property(readonly, nonatomic) double opacity;
-@property(readonly, nonatomic) CUIImageInsets alignmentEdgeInsets;
-@property(readonly, nonatomic) CUIImageInsets edgeInsets;
+@property(readonly, nonatomic) NSEdgeInsets alignmentEdgeInsets;
+@property(readonly, nonatomic) NSEdgeInsets edgeInsets;
 @property(readonly, nonatomic) CUIImageType imageType;
 @property(readonly, nonatomic) double scale;
 @property(readonly, nonatomic) struct CGSize size;
-@property(readonly, nonatomic) struct CGImage *image;
-- (struct CGRect)alignmentRect;
+@property(readonly, nonatomic, nonnull) struct CGImage *image;
 - (CUIUserInterfaceSizeClass)sizeClassVertical;
 - (CUIUserInterfaceSizeClass)sizeClassHorizontal;
 - (CUISubtype)subtype;
 - (CUIDeviceIdiom)idiom;
 
-- (CUIRenditionKey *)baseKey;
+- (nonnull CUIRenditionKey *)baseKey;
 - (long long)graphicsClass;
 - (long long)memoryClass;
-- (CUIThemeRendition *)_rendition;
-- (CUIRenditionKey *)renditionKey;
+
 
 @end
 
@@ -120,15 +138,32 @@ typedef NS_ENUM(NSInteger, CUIImageType) {
 
 @interface CUIThemeRendition : NSObject
 
+- (nonnull NSString *)name;
+- (CUIImageType)type;
 - (unsigned int)subtype;
-- (NSData *)data;
-- (CGPDFDocumentRef)pdfDocument;
-- (CGImageRef)unslicedImage;
-- (NSString *)utiType;
-- (NSString *)name;
-- (NSInteger)type;
+- (nullable NSString *)utiType;
+- (nullable NSData *)data;
+- (nullable CGPDFDocumentRef)pdfDocument;
+- (nullable CUIRenditionSliceInformation *)sliceInformation;
+- (nullable CGImageRef)unslicedImage;
 
 @end
 
-// Helper functions.
-NSData *GetRenditionSrcData(id rendition);
+@interface CUIRenditionSliceInformation : NSObject <NSCopying>
+
+@property(readonly, nonatomic) NSEdgeInsets edgeInsets;
+@property(readonly, nonatomic) struct CGRect destinationRect;
+@property(readonly, nonatomic) CUIImageType renditionType;
+- (struct CGSize)_bottomRightCapSize;
+- (struct CGSize)_topLeftCapSize;
+- (nonnull NSString *)description;
+
+@end
+
+@interface CUICatalog : NSObject
+
+- (nullable instancetype)initWithURL:(nonnull NSURL *)url error:(NSError *_Nullable __autoreleasing *_Nullable)error;
+- (nonnull NSArray<NSString *> *)allImageNames;
+- (nonnull NSArray<CUINamedImage *> *)imagesWithName:(nonnull NSString *)name;
+
+@end

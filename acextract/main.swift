@@ -27,19 +27,20 @@ import Foundation
 
 // Command line.
 let cli = CommandLine()
-let cli_help = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Show help message.")
-let cli_list = BoolOption(shortFlag: "l", longFlag: "list", helpMessage: "Print content of the CAR file without extracting.")
-let cli_verbose = CounterOption(shortFlag: "v", longFlag: "verbose", helpMessage: "Print more detail. You can use -vv or -vvv for more info.")
-let cli_input = StringOption(shortFlag: "i", longFlag: "input", required: true, helpMessage: "Path to input CAR file.")
-let cli_output = StringOption(shortFlag: "o", longFlag: "output", required: false, helpMessage: "Path to output directory.")
-cli.addOptions([cli_input, cli_output, cli_list, cli_help, cli_verbose])
+let cliHelp = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Show help message.")
+let cliList = BoolOption(shortFlag: "l", longFlag: "list", helpMessage: "Print content of the CAR file without extracting.")
+let cliVerbose = CounterOption(shortFlag: "v", longFlag: "verbose", helpMessage: "Print more detail. You can use -vv or -vvv for more info.")
+let cliInput = StringOption(shortFlag: "i", longFlag: "input", required: true, helpMessage: "Path to input CAR file.")
+let cliOutput = StringOption(shortFlag: "o", longFlag: "output", required: false, helpMessage: "Path to output directory.")
+cli.addOptions([cliInput, cliOutput, cliList, cliHelp, cliVerbose])
 
 // Parse.
-let (success, error) = cli.parse()
-if !success {
-    println(error!)
+do {
+    try cli.parse()
+} catch {
+    print(error)
     cli.printUsage()
-    if cli_help.value {
+    if cliHelp.value {
         exit(EX_OK)
     } else {
         exit(EX_USAGE)
@@ -47,25 +48,35 @@ if !success {
 }
 
 // Print help screen.
-if cli_help.value {
+if cliHelp.value {
     cli.printUsage()
     exit(EX_OK)
 }
 // List or extract assets catalog.
-else if let input = cli_input.value {
-    if let assetsCatalog = AssetsCatalog(filePath: input) {
+else if let input = cliInput.value {
+    do {
+        let assetsCatalog = try AssetsCatalog(path: input)
         // Print content of the file.
-        if cli_list.value {
-            print(assetsCatalog.listContent(cli_verbose.value))
+        if cliList.value {
+            let verbose: PrintInformationOperation.Verbose
+            switch cliVerbose.value {
+            case 0: verbose = .Name
+            case 1: verbose = .Verbose
+            case 2: verbose = .VeryVerbose
+            default: verbose = .VeryVeryVerbose
+            }
+            let pi = PrintInformationOperation(verbose: verbose)
+            try assetsCatalog.performOperation(pi)
         }
         // Extract to folder.
-        if let output = cli_output.value {
-            var error: NSError?
-            assetsCatalog.extractContentToDirectoryAtPath(output, error: &error)
+        if let output = cliOutput.value {
+            let extract = ExtractOperation(path: output)
+            try assetsCatalog.performOperation(extract)
         }
     }
     // Cannot create catalog reader.
-    else {
+    catch {
+        print("Error: \(error)")
         cli.printUsage()
         exit(EX_USAGE)
     }

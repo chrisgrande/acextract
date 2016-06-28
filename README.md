@@ -40,5 +40,17 @@ or
     mkdir -p ~/AssetsOutput
     acextract -i ~/Assets.car -o ~/AssetsOutput
 
+## Todo:
+- [x] Size class
+- [x] Rendering
+- [x] Alignment
+- [x] Slicing
+- [ ] Memory
+- [ ] Graphics
+- [ ] Data
+- [ ] PDF
+- [ ] Atlas
+- [ ] Apple TV Image stack
+
 ## Similar tools:
 - [iOS-Asset-Extractor](https://github.com/Marxon13/iOS-Asset-Extractor)
